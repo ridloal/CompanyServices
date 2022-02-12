@@ -16,3 +16,8 @@
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
+
+$router->group(['prefix' => 'api'], function () use ($router) {
+	$router->post('/checkEligible', 'CustomRequestController@checkEligible');
+	$router->post('/validatePhoto', 'CustomRequestController@validatePhoto');
+});
