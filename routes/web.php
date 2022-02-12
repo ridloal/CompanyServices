@@ -19,4 +19,5 @@ $router->get('/', function () use ($router) {
 
 $router->group(['prefix' => 'api'], function () use ($router) {
 	$router->post('/checkEligible', 'CustomRequestController@checkEligible');
+	$router->post('/validatePhoto', 'CustomRequestController@validatePhoto');
 });

@@ -10,27 +10,7 @@ use DB;
 
 class CustomRequestController extends Controller
 {
-    public function index($customerId)
-    {
-
-		$customSql = "SELECT customer_id, SUM(total_spent) as grand_total, count(customer_id) as total_transaction
-			FROM purchase_transactions
-			WHERE customer_id = ? AND transaction_at >= (CURDATE() - INTERVAL ? DAY)
-			GROUP BY customer_id";
-		
-		$customSql = "SELECT * FROM vouchers
-			WHERE status = ? OR (status = ? AND TIMESTAMPDIFF(MINUTE, created_at, updated_at) >= ?)
-			LIMIT 1";
-
-		// $tes = DB::select($customSql, [$customerId, config('constants.ELIGIBLE.MAX_LAST_TRANSACTION')]);
-		$tes = DB::select($customSql, [config('constants.VOUCHER.STATUS_AVAILABLE'), config('constants.VOUCHER.STATUS_LOCKED'), config('constants.ELIGIBLE.LOCK_TIME')]);
-		// $tes = Voucher::where('status', config('constants.VOUCHER.STATUS_AVAILABLE'))->first();
-		// $tes->status = 1;
-		// $tes->save();
-		return $tes;
-    }
-
-    public function checkEligible(Request $request)
+	public function checkEligible(Request $request)
     {
 		$data = ['eligible' => false];
 
@@ -48,12 +28,15 @@ class CustomRequestController extends Controller
 				&& $checkResult->total_transaction >= config('constants.ELIGIBLE.MIN_TRANSACTION')) {
 				
 				// Check is customer have a voucher (in lock or owned)
-				$checkCustomerVoucher = PurchaseTransaction::checkCustomerVoucher($request->customer_id);
+				$checkCustomerVoucher = Voucher::checkCustomerVoucher($request->customer_id);
 				if(!empty($checkCustomerVoucher)) {
 
-					if ($checkCustomerVoucher->time_running < config('constants.ELIGIBLE.LOCK_TIME')) {
+					if ($checkCustomerVoucher->time_running < config('constants.ELIGIBLE.LOCK_TIME')
+						&& $checkCustomerVoucher->status == config('constants.VOUCHER.STATUS_LOCKED')) {
+
 						$timeRemaining = config('constants.ELIGIBLE.LOCK_TIME') - $checkCustomerVoucher->time_running;
 						$message = "Please provide photo selfie. ".$timeRemaining." minute remaining.";
+
 					}else {
 						$message = "Each customer is allowed to redeem 1 cash voucher only.";
 					}
@@ -62,7 +45,7 @@ class CustomRequestController extends Controller
 				}
 
 				// Check voucher availability
-				$checkVoucher = PurchaseTransaction::checkVoucher($request->customer_id);
+				$checkVoucher = Voucher::checkVoucher($request->customer_id);
 				if(!empty($checkVoucher)) {
 					Voucher::where('id', $checkVoucher->id)->update([
 						'customer_id' => $request->customer_id,
@@ -85,4 +68,49 @@ class CustomRequestController extends Controller
 			return $this->responseTemplate($data, $e, Response::HTTP_INTERNAL_SERVER_ERROR);
     	}
     }
+
+	public function validatePhoto(Request $request)
+    {
+		$data = '';
+
+		// Check if image attached is valid
+		$checkImage = $this->imageRecognitionAPI($request->image_url);
+		if ($checkImage) {
+			// Check is the time still meet the requirement
+			$checkCustomerVoucher = Voucher::checkCustomerVoucher($request->customer_id);
+			if(!empty($checkCustomerVoucher)) {
+
+				if ($checkCustomerVoucher->time_running < config('constants.ELIGIBLE.LOCK_TIME') 
+					&& $checkCustomerVoucher->status == config('constants.VOUCHER.STATUS_LOCKED')) {
+					$voucher = Voucher::find($checkCustomerVoucher->id);
+					$voucher->status = config('constants.VOUCHER.STATUS_OWNED');
+					$voucher->save();
+					
+					$data = $voucher;
+					$message = "Congratulations, you get a cash voucher !";
+				} else {
+					$message = "Each customer is allowed to redeem 1 cash voucher only.";
+				}
+
+			} else {
+				$message = "Try claim the voucher first, and provide photo within ".config('constants.ELIGIBLE.LOCK_TIME')." minutes";
+			}
+		} else {
+			$message = "Image attached not valid. Please try again !";
+		}
+
+		return $this->responseTemplate($data, $message, Response::HTTP_OK);
+	}
+
+	public function imageRecognitionAPI($imageUrl)
+    {
+		// The magic will be here
+
+		// If valid return true
+		if (!empty($imageUrl)) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 }
