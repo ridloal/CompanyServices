@@ -19,7 +19,7 @@ class CustomRequestController extends Controller
 			// Get data transaction for customer
 			$checkResult = PurchaseTransaction::checkCustomer($request->customer_id);
 			if (empty($checkResult)) {
-				$message = "Customer have not made any transaction in last ".config('constants.ELIGIBLE.MAX_LAST_TRANSACTION')." days.";
+				$message = sprintf(config('constants.MESSAGES.CUSTOMER_NO_TRANSACTION'), config('constants.ELIGIBLE.MAX_LAST_TRANSACTION'));
 				return $this->responseTemplate($data, $message, Response::HTTP_OK);
 			}
 
@@ -35,10 +35,10 @@ class CustomRequestController extends Controller
 						&& $checkCustomerVoucher->status == config('constants.VOUCHER.STATUS_LOCKED')) {
 
 						$timeRemaining = config('constants.ELIGIBLE.LOCK_TIME') - $checkCustomerVoucher->time_running;
-						$message = "Please provide photo selfie. ".$timeRemaining." minute remaining.";
+						$message = sprintf(config('constants.MESSAGES.CUSTOMER_NEED_PROVIDE_PHOTO'), $timeRemaining);
 
 					}else {
-						$message = "Each customer is allowed to redeem 1 cash voucher only.";
+						$message = config('constants.MESSAGES.CUSTOMER_ONLY_ONE_VOUCHER');
 					}
 
 					return $this->responseTemplate($data, $message, Response::HTTP_OK);
@@ -53,12 +53,12 @@ class CustomRequestController extends Controller
 						]
 					);
 					$data = ['eligible' => true];
-					$message = "The customer eligible to get the voucher. Please provide required photo selfie within 10 minutes to get the voucher";
+					$message = config('constants.MESSAGES.CUSTOMER_IS_ELIGIBLE');
 				} else {
-					$message = "The voucher is not available right now, please try again later.";
+					$message = config('constants.MESSAGES.VOUCHER_NOT_AVAILABLE');
 				}
 			} else {
-				$message = "The customer are not eligible to get the voucher.";
+				$message = config('constants.MESSAGES.CUSTOMER_NOT_ELIGIBLE');
 			}
 
 			return $this->responseTemplate($data, $message, Response::HTTP_OK);
@@ -87,16 +87,16 @@ class CustomRequestController extends Controller
 					$voucher->save();
 					
 					$data = $voucher;
-					$message = "Congratulations, you get a cash voucher !";
+					$message = config('constants.MESSAGES.VOUCHER_OWNED');
 				} else {
-					$message = "Each customer is allowed to redeem 1 cash voucher only.";
+					$message = config('constants.MESSAGES.CUSTOMER_ONLY_ONE_VOUCHER');
 				}
 
 			} else {
-				$message = "Try claim the voucher first, and provide photo within ".config('constants.ELIGIBLE.LOCK_TIME')." minutes";
+				$message = sprintf(config('constants.MESSAGES.CUSTOMER_NOT_YET_CLAIM'), config('constants.ELIGIBLE.LOCK_TIME'));
 			}
 		} else {
-			$message = "Image attached not valid. Please try again !";
+			$message = config('constants.MESSAGES.IMAGE_NOT_VALID');
 		}
 
 		return $this->responseTemplate($data, $message, Response::HTTP_OK);
