@@ -34,4 +34,4 @@ The Lumen framework is open-sourced software licensed under the [MIT license](ht
 11. Done. The API service is ready.
 
 ### API Documentation
-soon
+Attached on documentation.
