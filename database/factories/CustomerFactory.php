@@ -12,12 +12,13 @@ class CustomerFactory extends Factory
     public function definition(): array
     {
     	return [
-            'first_name' => $this->faker->firstName,
-            'last_name' => $this->faker->lastName,
+            'first_name' => $this->faker->firstName(),
+            'last_name' => $this->faker->lastName(),
             'gender' => $this->faker->randomElement($array = array ('Male','Female')),
             'date_of_birth' => $this->faker->date($format = 'Y-m-d', $max = 'now'),
-            'contact_number' => $this->faker->phoneNumber,
-            'email' => $this->faker->unique()->email
+            'date_of_birth' => $this->faker->dateTimeBetween($startDate = '-60 years', $endDate = '-13 years', $timezone = null),
+            'contact_number' => $this->faker->phoneNumber(),
+            'email' => $this->faker->unique()->email()
     	];
     }
 }
